@@ -27,7 +27,7 @@ class UrlBase(BaseModel):
     short_url: str
     long_url: str
     created: datetime
-    expiration_time: timedelta
+    expiration_time: int
     last_access: datetime
     is_active: bool
     deleted: datetime = None

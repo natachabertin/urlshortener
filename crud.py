@@ -36,8 +36,8 @@ def create_user_url(db: Session, url: schemas.UrlCreate, user_id: int):
     return db_url
 
 
-def get_click(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Url).offset(skip).limit(limit).all()
+def get_clicks(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Click).offset(skip).limit(limit).all()
 
 
 def create_url_click(db: Session, click: schemas.UrlCreate, url_id: int):

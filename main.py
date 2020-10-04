@@ -24,7 +24,6 @@ async def db_session_middleware(request: Request, call_next):
         request.state.db.close()
     return response
 
-
 # Dependency
 def get_db(request: Request):
     return request.state.db
@@ -56,9 +55,7 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/users/{user_id}/urls/", response_model=schemas.Url)
-def create_url_for_user(
-    user_id: int, url: schemas.UrlCreate, db: Session = Depends(get_db)
-):
+def create_url_for_user(user_id: int, url: schemas.UrlCreate, db: Session = Depends(get_db)):
     return crud.create_user_url(db=db, url=url, user_id=user_id)
 
 
@@ -69,10 +66,8 @@ def read_urls(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 
 
 @app.post("/urls/{url_id}/clicks/", response_model=schemas.Click)
-def create_click_for_url(
-    url_id: int, click: schemas.ClickCreate, db: Session = Depends(get_db)
-):
-    return crud.create_url_click(db=db, click=click, link_id=link_id)
+def create_click_for_url(url_id: int, click: schemas.ClickCreate, db: Session = Depends(get_db)):
+    return crud.create_url_click(db=db, click=click, url_id=url_id)
 
 
 @app.get("/clicks/", response_model=List[schemas.Click])
