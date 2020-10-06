@@ -194,3 +194,47 @@ def test_read_clicks(client):
         "user_agent": "string",
         "viewport": "string"
     }]
+
+
+def test_click_short_url_redirects_to_long_url_site(client):
+    client.post("/users/", json={"email": "user@mai.l", "password": "pwd"})
+    dataUrl = {
+      "short_url": "meli",
+      "long_url": "https://www.mercadolibre.com.ar/",
+      "created": "2020-10-04T01:36:34.492000",
+      "expiration_time": 10,
+      "last_access": "2020-10-04T02:36:34.492000",
+      "is_active": True,
+      "deleted": "2020-10-04T03:03:34.492000",
+      "campaign": "string"
+    }
+    client.post("/users/1/urls/", json=dataUrl)
+    response = client.get("/meli")
+    assert response.status_code == 200
+    assert "mercadolibre.com" in response.text
+
+
+def test_click_short_url_loads_click_metadata(client):
+    client.post("/users/", json={"email": "user@mai.l", "password": "pwd"})
+    dataUrl = {
+      "short_url": "meli",
+      "long_url": "https://www.mercadolibre.com.ar/",
+      "created": "2020-10-04T01:36:34.492000",
+      "expiration_time": 10,
+      "last_access": "2020-10-04T02:36:34.492000",
+      "is_active": True,
+      "deleted": "2020-10-04T03:03:34.492000",
+      "campaign": "string"
+    }
+    client.post("/users/1/urls/", json=dataUrl)
+    client.get("/meli")
+    response = client.get("/clicks/")
+    assert response.status_code == 200
+    assert response.json() == [{
+        "id": 1,
+        "link_id": 1,
+        "visited": "2020-10-04T22:16:29.488000",
+        "referer": "string",
+        "user_agent": "string",
+        "viewport": "string"
+    }]
