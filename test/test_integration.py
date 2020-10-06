@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-
+import requests
 from main import app, get_db
 from database import Base
 from sqlalchemy import create_engine
@@ -27,7 +27,7 @@ def client():
 
     app.dependency_overrides[get_db] = override_get_db
     yield TestClient(app)
-    Base.metadata.drop_all(bind=engine)  # db_teardown
+    Base.metadata.drop_all(bind=engine)  # fast and untidy db_teardown after each test
 
 
 def test_read_main(client):
@@ -135,7 +135,7 @@ def test_read_urls(client):
 
 def test_create_click_for_url(client):
     client.post("/users/", json={"email": "user@mai.l", "password": "pwd"})
-    dataUrl = {
+    data_url = {
       "short_url": "df4ed6g4",
       "long_url": "google.com/some/dir.pdf",
       "created": "2020-10-04T01:36:34.492000",
@@ -145,14 +145,14 @@ def test_create_click_for_url(client):
       "deleted": "2020-10-04T03:03:34.492000",
       "campaign": "string"
     }
-    client.post("/users/1/urls/", json=dataUrl)
-    dataClick = {
+    client.post("/users/1/urls/", json=data_url)
+    data_click = {
         "visited": "2020-10-04T22:16:29.488000",
         "referer": "string",
         "user_agent": "string",
         "viewport": "string"
     }
-    response = client.post("/urls/1/clicks/", json=dataClick)
+    response = client.post("/urls/1/clicks/", json=data_click)
     assert response.status_code == 200
     assert response.json() == {
         "id": 1,
@@ -166,7 +166,7 @@ def test_create_click_for_url(client):
 
 def test_read_clicks(client):
     client.post("/users/", json={"email": "user@mai.l", "password": "pwd"})
-    dataUrl = {
+    data_url = {
       "short_url": "df4ed6g4",
       "long_url": "google.com/some/dir.pdf",
       "created": "2020-10-04T01:36:34.492000",
@@ -176,14 +176,14 @@ def test_read_clicks(client):
       "deleted": "2020-10-04T03:03:34.492000",
       "campaign": "string"
     }
-    client.post("/users/1/urls/", json=dataUrl)
-    dataClick = {
+    client.post("/users/1/urls/", json=data_url)
+    data_click = {
         "visited": "2020-10-04T22:16:29.488000",
         "referer": "string",
         "user_agent": "string",
         "viewport": "string"
     }
-    client.post("/urls/1/clicks/", json=dataClick)
+    client.post("/urls/1/clicks/", json=data_click)
     response = client.get("/clicks/")
     assert response.status_code == 200
     assert response.json() == [{
@@ -198,7 +198,7 @@ def test_read_clicks(client):
 
 def test_click_short_url_redirects_to_long_url_site(client):
     client.post("/users/", json={"email": "user@mai.l", "password": "pwd"})
-    dataUrl = {
+    data_url = {
       "short_url": "meli",
       "long_url": "https://www.mercadolibre.com.ar/",
       "created": "2020-10-04T01:36:34.492000",
@@ -208,15 +208,16 @@ def test_click_short_url_redirects_to_long_url_site(client):
       "deleted": "2020-10-04T03:03:34.492000",
       "campaign": "string"
     }
-    client.post("/users/1/urls/", json=dataUrl)
-    response = client.get("/meli")
+    client.post("/users/1/urls/", json=data_url)
+    # I use Requests here because Starlette client has an issue with redirection
+    response = requests.get("http://127.0.0.1:8000/meli")
     assert response.status_code == 200
-    assert "mercadolibre.com" in response.text
+    assert "www.mercadolibre.com.ar" in response.text
 
 
 def test_click_short_url_loads_click_metadata(client):
     client.post("/users/", json={"email": "user@mai.l", "password": "pwd"})
-    dataUrl = {
+    data_url = {
       "short_url": "meli",
       "long_url": "https://www.mercadolibre.com.ar/",
       "created": "2020-10-04T01:36:34.492000",
@@ -226,15 +227,10 @@ def test_click_short_url_loads_click_metadata(client):
       "deleted": "2020-10-04T03:03:34.492000",
       "campaign": "string"
     }
-    client.post("/users/1/urls/", json=dataUrl)
+    client.post("/users/1/urls/", json=data_url)
     client.get("/meli")
     response = client.get("/clicks/")
     assert response.status_code == 200
-    assert response.json() == [{
-        "id": 1,
-        "link_id": 1,
-        "visited": "2020-10-04T22:16:29.488000",
-        "referer": "string",
-        "user_agent": "string",
-        "viewport": "string"
-    }]
+    assert response.json() == response.json()['referer'] == 'string'
+    assert response.json() == response.json()['user_agent'] == 'string'
+    assert response.json() == response.json()['viewport'] == 'string'
