@@ -28,6 +28,10 @@ def get_urls(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Url).offset(skip).limit(limit).all()
 
 
+def get_url_by_shortened(db: Session, short_url: str):
+    return db.query(models.Url).filter(models.Url.short_url == short_url).first()
+
+
 def create_user_url(db: Session, url: schemas.UrlCreate, user_id: int):
     db_url = models.Url(**url.dict(), owner_id=user_id)
     db.add(db_url)

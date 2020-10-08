@@ -5,6 +5,8 @@ uvicorn main:app --reload
 from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi.responses import RedirectResponse
+
 from sqlalchemy.orm import Session
 
 import crud, models, schemas
@@ -31,6 +33,21 @@ def get_db(request: Request):
 @app.get("/")
 async def read_main():
     return {"msg": "Hello World"}
+
+
+@app.get("/{short_url}")
+# def access_url(short_url: str, click: schemas.ClickCreate, db: Session = Depends(get_db)):
+def access_url(short_url: str, db: Session = Depends(get_db)):
+    url = crud.get_url_by_shortened(db, short_url)
+    click = schemas.ClickCreate(
+        visited="2020-10-06T02:45:31.618Z",
+        referer="string",
+        user_agent="string",
+        viewport="string"
+    )
+    crud.create_url_click(db=db, click=click, url_id=url.id)
+    return RedirectResponse(url.long_url)
+
 
 @app.post("/users/", response_model=schemas.User)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
