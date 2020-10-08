@@ -1,4 +1,5 @@
 import pytest
+import json
 from fastapi.testclient import TestClient
 import requests
 from main import app, get_db
@@ -198,39 +199,43 @@ def test_read_clicks(client):
 
 def test_click_short_url_redirects_to_long_url_site(client):
     client.post("/users/", json={"email": "user@mai.l", "password": "pwd"})
-    data_url = {
-      "short_url": "meli",
-      "long_url": "https://www.mercadolibre.com.ar/",
-      "created": "2020-10-04T01:36:34.492000",
-      "expiration_time": 10,
-      "last_access": "2020-10-04T02:36:34.492000",
-      "is_active": True,
-      "deleted": "2020-10-04T03:03:34.492000",
-      "campaign": "string"
+    data_url ={
+        "short_url": "exa",
+        "long_url": "http://www.example.org",
+        "created": "2020-10-08T22:12:30.302Z",
+        "expiration_time": 30,
+        "last_access": "2020-10-08T22:12:30.302Z",
+        "is_active": True,
+        "deleted": "2020-10-08T22:12:30.302Z",
+        "campaign": "hotsale"
     }
     client.post("/users/1/urls/", json=data_url)
-    # I use Requests here because Starlette client has an issue with redirection
-    response = requests.get("http://127.0.0.1:8000/meli")
+    headers = {
+        'User-Agent': "Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.133 Mobile Safari/535.19"
+    }
+    response = requests.get("http://127.0.0.1:8000/exa", headers=headers)
     assert response.status_code == 200
-    assert "www.mercadolibre.com.ar" in response.text
+    assert "Example Domain" in response.text
 
 
 def test_click_short_url_loads_click_metadata(client):
     client.post("/users/", json={"email": "user@mai.l", "password": "pwd"})
-    data_url = {
-      "short_url": "meli",
-      "long_url": "https://www.mercadolibre.com.ar/",
-      "created": "2020-10-04T01:36:34.492000",
-      "expiration_time": 10,
-      "last_access": "2020-10-04T02:36:34.492000",
-      "is_active": True,
-      "deleted": "2020-10-04T03:03:34.492000",
-      "campaign": "string"
+    data_url ={
+        "short_url": "exa",
+        "long_url": "http://www.example.org",
+        "created": "2020-10-08T22:12:30.302Z",
+        "expiration_time": 30,
+        "last_access": "2020-10-08T22:12:30.302Z",
+        "is_active": True,
+        "deleted": "2020-10-08T22:12:30.302Z",
+        "campaign": "hotsale"
     }
     client.post("/users/1/urls/", json=data_url)
-    client.get("/meli")
+    headers = {
+        'User-Agent': "Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.133 Mobile Safari/535.19"
+    }
+    requests.get("http://127.0.0.1:8000/exa", headers=headers)
     response = client.get("/clicks/")
-    assert response.status_code == 200
-    assert response.json() == response.json()['referer'] == 'string'
-    assert response.json() == response.json()['user_agent'] == 'string'
-    assert response.json() == response.json()['viewport'] == 'string'
+    assert json.load(response.json())[0]["referrer"] == "string"
+    assert json.load(response.json())[0]["user_agent"] == "string"
+    assert json.load(response.json())[0]["viewport"] == "string"

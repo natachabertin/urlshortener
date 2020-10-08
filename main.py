@@ -2,6 +2,7 @@
 Run server from console with:
 uvicorn main:app --reload
 """
+from datetime import datetime
 from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
@@ -40,7 +41,7 @@ async def read_main():
 def access_url(short_url: str, db: Session = Depends(get_db)):
     url = crud.get_url_by_shortened(db, short_url)
     click = schemas.ClickCreate(
-        visited="2020-10-06T02:45:31.618Z",
+        visited= datetime.now(),
         referer="string",
         user_agent="string",
         viewport="string"
