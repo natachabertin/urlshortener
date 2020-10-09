@@ -5,35 +5,47 @@ uvicorn main:app --reload
 from datetime import datetime
 from typing import List
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi import Depends, FastAPI, HTTPException  # , Request, Response
 from fastapi.responses import RedirectResponse
 
 from sqlalchemy.orm import Session
 
-import crud, models, schemas
+import crud
+import models
+import schemas
 from database import SessionLocal, engine
 
 models.Base.metadata.create_all(bind=engine)
-app = FastAPI()
+app = FastAPI(title="URL shortener")
 
-
-@app.middleware("http")
-async def db_session_middleware(request: Request, call_next):
-    response = Response("Internal server error", status_code=500)
-    try:
-        request.state.db = SessionLocal()
-        response = await call_next(request)
-    finally:
-        request.state.db.close()
-    return response
 
 # Dependency
-def get_db(request: Request):
-    return request.state.db
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# with this MDW we can work async with SQLite (opens a DB on each req and close it to unblock)
+# @app.middleware("http")
+# async def db_session_middleware(request: Request, call_next):
+#     response = Response("Internal server error", status_code=500)
+#     try:
+#         request.state.db = SessionLocal()
+#         response = await call_next(request)
+#     finally:
+#         request.state.db.close()
+#     return response
+
+# # Dependency
+# def get_db(request: Request):
+#     return request.state.db
 
 @app.get("/")
 async def read_main():
-    return {"msg": "Hello World"}
+    return {"msg": "URL shortener"}
 
 
 @app.get("/{short_url}")
@@ -41,7 +53,7 @@ async def read_main():
 def access_url(short_url: str, db: Session = Depends(get_db)):
     url = crud.get_url_by_shortened(db, short_url)
     click = schemas.ClickCreate(
-        visited= datetime.now(),
+        visited=datetime.now(),
         referer="string",
         user_agent="string",
         viewport="string"
@@ -94,6 +106,7 @@ def read_clicks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return clicks
 
 
+# we need this main to debug it
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)

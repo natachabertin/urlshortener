@@ -34,7 +34,7 @@ def client():
 def test_read_main(client):
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json() == {"msg": "Hello World"}
+    assert response.json() == {"msg": "URL shortener"}
 
 
 def test_create_user(client):

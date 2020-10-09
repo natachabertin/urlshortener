@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
-import models, schemas
+import models
+import schemas
 
 
 def get_user(db: Session, user_id: int):
@@ -44,7 +45,7 @@ def get_clicks(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Click).offset(skip).limit(limit).all()
 
 
-def create_url_click(db: Session, click: schemas.UrlCreate, url_id: int):
+def create_url_click(db: Session, click: schemas.ClickCreate, url_id: int):
     db_click = models.Click(**click.dict(), link_id=url_id)
     db.add(db_click)
     db.commit()
