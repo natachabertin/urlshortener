@@ -280,3 +280,15 @@ def test_hasing_pwd(client):
 @pytest.mark.skip('test in browser')
 def test_unhashing_pwd(client):
     pass
+
+
+@pytest.mark.skip('test in browser')
+def test_validate_repetition_short_manual(client):
+    """check if done by the schema"""
+    pass
+
+
+@pytest.mark.skip('test in browser')
+def test_can_create_two_diff_shorts_for_one_long(client):
+    """check that schema works like this as designed"""
+    pass

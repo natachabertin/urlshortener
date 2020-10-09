@@ -63,9 +63,8 @@ def disable_url(db: Session, url_id: int):
     return url
 
 
-
-
 def url_exists():
+    """done by the schema"""
     pass
 
 
