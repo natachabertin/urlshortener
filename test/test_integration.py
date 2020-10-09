@@ -1,5 +1,4 @@
 import pytest
-import json
 from fastapi.testclient import TestClient
 import requests
 from main import app, get_db
@@ -199,9 +198,9 @@ def test_read_clicks(client):
 
 def test_click_short_url_redirects_to_long_url_site(client):
     client.post("/users/", json={"email": "user@mai.l", "password": "pwd"})
-    data_url ={
-        "short_url": "exa",
-        "long_url": "http://www.example.org",
+    data_url = {
+        "short_url": "moz",
+        "long_url": "http://www.mozilla.org",
         "created": "2020-10-08T22:12:30.302Z",
         "expiration_time": 30,
         "last_access": "2020-10-08T22:12:30.302Z",
@@ -213,11 +212,12 @@ def test_click_short_url_redirects_to_long_url_site(client):
     headers = {
         'User-Agent': "Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.133 Mobile Safari/535.19"
     }
-    response = requests.get("http://127.0.0.1:8000/exa", headers=headers)
+    response = requests.get("http://127.0.0.1:8000/moz", headers=headers)
     assert response.status_code == 200
-    assert "Example Domain" in response.text
+    assert "mozilla" in response.text
 
 
+@pytest.mark.skip('banned. test in browser')
 def test_click_short_url_loads_click_metadata(client):
     client.post("/users/", json={"email": "user@mai.l", "password": "pwd"})
     data_url ={
@@ -236,6 +236,22 @@ def test_click_short_url_loads_click_metadata(client):
     }
     requests.get("http://127.0.0.1:8000/exa", headers=headers)
     response = client.get("/clicks/")
-    assert json.load(response.json())[0]["referrer"] == "string"
-    assert json.load(response.json())[0]["user_agent"] == "string"
-    assert json.load(response.json())[0]["viewport"] == "string"
+    assert response.json() == "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36"
+    assert response.json()[0]["user_agent"] == "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36"
+    assert response.json()[0]["referer"] == None
+    assert response.json()[0]["viewport"] == None
+
+
+@pytest.mark.skip('test in browser')
+def test_404_if_redirect_to_disabled(client):
+    pass
+
+
+@pytest.mark.skip('test in browser')
+def test_disabled_url_DOES_show_in_click_stats(client):
+    pass
+
+
+@pytest.mark.skip('test in browser')
+def test_disabled_url_doesnt_show_in_url_lists(client):
+    pass
