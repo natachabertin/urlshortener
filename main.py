@@ -109,7 +109,7 @@ def delete_url(url_id: int, db: Session = Depends(get_db)):
     try:
         return crud.disable_url(db, url_id=url_id)
     except ValueError:
-        raise HTTPException(status_code=418, detail="URL not found")
+        raise HTTPException(status_code=418, detail="Invalid URL can't be deleted")
 
 
 @app.get("/clicks/", response_model=List[schemas.Click])

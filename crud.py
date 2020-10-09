@@ -56,7 +56,7 @@ def create_url_click(db: Session, click: schemas.ClickCreate, url_id: int):
 def disable_url(db: Session, url_id: int):
     url = db.query(models.Url).filter(models.Url.id == url_id).first()
     if url is None:
-        raise Exception(msg="Url not found")
+        raise ValueError(msg="Url not found")
     url.is_active = False
     db.commit()
     db.refresh(url)
