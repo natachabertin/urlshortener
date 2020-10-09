@@ -51,3 +51,27 @@ def create_url_click(db: Session, click: schemas.ClickCreate, url_id: int):
     db.commit()
     db.refresh(db_click)
     return db_click
+
+
+def disable_url(db: Session, url_id: int):
+    url = db.query(models.Url).filter(models.Url.id == url_id).first()
+    if url is None:
+        raise Exception(msg="Url not found")
+    url.is_active = False
+    db.commit()
+    db.refresh(url)
+    return url
+
+
+
+
+def url_exists():
+    pass
+
+
+def hash_data():
+    pass
+
+
+def unhash_data():
+    pass

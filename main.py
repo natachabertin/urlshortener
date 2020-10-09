@@ -5,7 +5,7 @@ uvicorn main:app --reload
 from datetime import datetime
 from typing import List
 
-from fastapi import Depends, FastAPI, HTTPException  # , Request, Response
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 
 from sqlalchemy.orm import Session
@@ -50,13 +50,16 @@ async def read_main():
 
 @app.get("/{short_url}")
 # def access_url(short_url: str, click: schemas.ClickCreate, db: Session = Depends(get_db)):
-def access_url(short_url: str, db: Session = Depends(get_db)):
+def access_url(short_url: str, request: Request, db: Session = Depends(get_db)):
     url = crud.get_url_by_shortened(db, short_url)
+    if url is None:
+        raise HTTPException(status_code=404, detail="That link doesn't exist.")
+    headers = request.headers
     click = schemas.ClickCreate(
         visited=datetime.now(),
-        referer="string",
-        user_agent="string",
-        viewport="string"
+        referer=headers.get('referer'),
+        user_agent=headers.get('user-agent'),
+        viewport=headers.get('viewport')
     )
     crud.create_url_click(db=db, click=click, url_id=url.id)
     return RedirectResponse(url.long_url)
@@ -98,6 +101,15 @@ def read_urls(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 @app.post("/urls/{url_id}/clicks/", response_model=schemas.Click)
 def create_click_for_url(url_id: int, click: schemas.ClickCreate, db: Session = Depends(get_db)):
     return crud.create_url_click(db=db, click=click, url_id=url_id)
+
+
+@app.delete("/urls/{url_id}", response_model=schemas.Url)
+def delete_url(url_id: int, db: Session = Depends(get_db)):
+    # TODO: refact this ugliness
+    try:
+        return crud.disable_url(db, url_id=url_id)
+    except ValueError:
+        raise HTTPException(status_code=418, detail="URL not found")
 
 
 @app.get("/clicks/", response_model=List[schemas.Click])
