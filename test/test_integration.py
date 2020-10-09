@@ -217,7 +217,7 @@ def test_click_short_url_redirects_to_long_url_site(client):
     assert "mozilla" in response.text
 
 
-@pytest.mark.skip('banned. test in browser')
+@pytest.mark.skip('banned. working in browser')
 def test_click_short_url_loads_click_metadata(client):
     client.post("/users/", json={"email": "user@mai.l", "password": "pwd"})
     data_url ={
@@ -242,6 +242,11 @@ def test_click_short_url_loads_click_metadata(client):
     assert response.json()[0]["viewport"] == None
 
 
+@pytest.mark.skip('working in browser')
+def test_delete_disables_url(client):
+    pass
+
+
 @pytest.mark.skip('test in browser')
 def test_404_if_redirect_to_disabled(client):
     pass
@@ -254,4 +259,24 @@ def test_disabled_url_DOES_show_in_click_stats(client):
 
 @pytest.mark.skip('test in browser')
 def test_disabled_url_doesnt_show_in_url_lists(client):
+    pass
+
+
+@pytest.mark.skip('test in browser')
+def test_hasing_url(client):
+    pass
+
+
+@pytest.mark.skip('test in browser')
+def test_unhashing_url(client):
+    pass
+
+
+@pytest.mark.skip('test in browser')
+def test_hasing_pwd(client):
+    pass
+
+
+@pytest.mark.skip('test in browser')
+def test_unhashing_pwd(client):
     pass
