@@ -26,11 +26,17 @@ def create_user(db: Session, user: schemas.UserCreate):
 
 
 def get_urls(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Url).offset(skip).limit(limit).all()
+    return db.query(models.Url).filter(
+        models.Url.is_active == True
+    ).offset(skip).limit(limit).all()
 
+# TODO: this filter must be refactored (get_urls and get_url_by_shortened)
 
 def get_url_by_shortened(db: Session, short_url: str):
-    return db.query(models.Url).filter(models.Url.short_url == short_url).first()
+    return db.query(models.Url).filter(
+        models.Url.short_url == short_url,
+        models.Url.is_active == True
+    ).first()
 
 
 def create_user_url(db: Session, url: schemas.UrlCreate, user_id: int):
@@ -63,9 +69,25 @@ def disable_url(db: Session, url_id: int):
     return url
 
 
-def url_exists():
-    """done by the schema"""
-    pass
+def url_already_exists(db: Session, short_url):
+    """
+    Validation for custom named short Urls.
+    Checks the DB and returns if the short url is occupied.
+
+    Params:
+    -------
+    db : Session
+        Current database. Mandatory.
+
+    short_url : str
+        Short URL to validate if already exists.
+        Mandatory.
+
+    Returns:
+    --------
+    Bool
+    """
+    return get_url_by_shortened(db, short_url) is not None
 
 
 def hash_data():
