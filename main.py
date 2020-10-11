@@ -5,8 +5,9 @@ uvicorn main:app --reload
 from datetime import datetime
 from typing import List
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from sqlalchemy.orm import Session
 
@@ -14,12 +15,13 @@ import crud
 import models
 import schemas
 from database import SessionLocal, engine
+from errors import WrongPasswordException
 
 models.Base.metadata.create_all(bind=engine)
 app = FastAPI(title="URL shortener")
 
 
-# Dependency
+# Dependencies
 def get_db():
     db = SessionLocal()
     try:
@@ -28,20 +30,20 @@ def get_db():
         db.close()
 
 
-# with this MDW we can work async with SQLite (opens a DB on each req and close it to unblock)
-# @app.middleware("http")
-# async def db_session_middleware(request: Request, call_next):
-#     response = Response("Internal server error", status_code=500)
-#     try:
-#         request.state.db = SessionLocal()
-#         response = await call_next(request)
-#     finally:
-#         request.state.db.close()
-#     return response
+security = HTTPBasic()
 
-# # Dependency
-# def get_db(request: Request):
-#     return request.state.db
+
+def get_current_user(credentials: HTTPBasicCredentials = Depends(security), db: Session = Depends(get_db)):
+    # TODO: improve the user feedback!
+    try:
+        return crud.validate_user(db, credentials)
+    except (ValueError, WrongPasswordException) as err:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=err.args[0],
+            headers={"WWW-Authenticate": "Basic"},
+        )
+
 
 @app.get("/")
 async def read_main():
@@ -49,7 +51,6 @@ async def read_main():
 
 
 @app.get("/{short_url}")
-# def access_url(short_url: str, click: schemas.ClickCreate, db: Session = Depends(get_db)):
 def access_url(short_url: str, request: Request, db: Session = Depends(get_db)):
     url = crud.get_url_by_shortened(db, short_url)
     if url is None:
@@ -57,12 +58,19 @@ def access_url(short_url: str, request: Request, db: Session = Depends(get_db)):
     headers = request.headers
     click = schemas.ClickCreate(
         visited=datetime.now(),
-        referer=headers.get('referer'),
         user_agent=headers.get('user-agent'),
+        # Some other examples as Client Hints, etc. added this 2 to validate NAN behavior.
+        referer=headers.get('referer'),
         viewport=headers.get('viewport')
     )
     crud.create_url_click(db=db, click=click, url_id=url.id)
     return RedirectResponse(url.long_url)
+
+
+@app.get("/users/me", response_model=schemas.User)
+def current_user_data(user: str = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Returns current user profile (user, urls and associated clicks)."""
+    return crud.get_user(db, user_id=user.id)
 
 
 @app.post("/users/", response_model=schemas.User)
@@ -98,14 +106,9 @@ def read_urls(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return urls
 
 
-@app.post("/urls/{url_id}/clicks/", response_model=schemas.Click)
-def create_click_for_url(url_id: int, click: schemas.ClickCreate, db: Session = Depends(get_db)):
-    return crud.create_url_click(db=db, click=click, url_id=url_id)
-
-
 @app.delete("/urls/{url_id}", response_model=schemas.Url)
-def delete_url(url_id: int, db: Session = Depends(get_db)):
-    # TODO: refact this ugliness
+def delete_url(url_id: int, db: Session = Depends(get_db), user: str = Depends(get_current_user)):
+    # TODO: refactor this ugliness
     try:
         return crud.disable_url(db, url_id=url_id)
     except ValueError:
