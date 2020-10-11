@@ -24,7 +24,7 @@ class Click(ClickBase):
 
 
 class UrlBase(BaseModel):
-    short_url: str
+    short_url: Optional[str] = None
     long_url: str
     created: datetime
     expiration_time: int

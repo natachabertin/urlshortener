@@ -1,7 +1,21 @@
+import secrets
+
 from sqlalchemy.orm import Session
 
 import models
 import schemas
+from errors import WrongPasswordException
+from utils import hash_password, verify_password, generate_random_short_url
+
+
+def validate_user(db: Session, credentials):
+    user = get_user_by_email(db, credentials.username)
+    if user is None:
+        raise ValueError("Wrong username. Use your email.")
+    if not verify_password(user.password, credentials.password):
+        raise WrongPasswordException("Password incorrect.")
+
+    return user
 
 
 def get_user(db: Session, user_id: int):
@@ -17,8 +31,8 @@ def get_users(db: Session, skip: int = 0, limit: int = 100):
 
 
 def create_user(db: Session, user: schemas.UserCreate):
-    fake_hashed_password = user.password + "notreallyhashed"
-    db_user = models.User(email=user.email, hashed_password=fake_hashed_password)
+    hashed_password = hash_password(user.password)
+    db_user = models.User(email=user.email, password=hashed_password)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -26,25 +40,24 @@ def create_user(db: Session, user: schemas.UserCreate):
 
 
 def get_urls(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Url).filter(
-        models.Url.is_active == True
-    ).offset(skip).limit(limit).all()
+    return db.query(models.Url).filter(models.Url.is_active).offset(skip).limit(limit).all()
 
-# TODO: this filter must be refactored (get_urls and get_url_by_shortened)
 
 def get_url_by_shortened(db: Session, short_url: str):
-    return db.query(models.Url).filter(
-        models.Url.short_url == short_url,
-        models.Url.is_active == True
-    ).first()
+    return db.query(models.Url).filter(models.Url.short_url == short_url, models.Url.is_active == True).first()
 
 
 def create_user_url(db: Session, url: schemas.UrlCreate, user_id: int):
-    db_url = models.Url(**url.dict(), owner_id=user_id)
-    db.add(db_url)
-    db.commit()
-    db.refresh(db_url)
-    return db_url
+    if url.short_url is None:
+        url.short_url = generate_random_short_url()
+    if not url_already_exists(db, url.short_url):
+        db_url = models.Url(**url.dict(), owner_id=user_id)
+        db.add(db_url)
+        db.commit()
+        db.refresh(db_url)
+        return db_url
+    else:
+        raise ValueError('That URL is taken.')
 
 
 def get_clicks(db: Session, skip: int = 0, limit: int = 100):
@@ -62,14 +75,14 @@ def create_url_click(db: Session, click: schemas.ClickCreate, url_id: int):
 def disable_url(db: Session, url_id: int):
     url = db.query(models.Url).filter(models.Url.id == url_id).first()
     if url is None:
-        raise ValueError(msg="Url not found")
+        raise ValueError("Url not found")
     url.is_active = False
     db.commit()
     db.refresh(url)
     return url
 
 
-def url_already_exists(db: Session, short_url):
+def url_already_exists(db: Session, short_url: str):
     """
     Validation for custom named short Urls.
     Checks the DB and returns if the short url is occupied.
@@ -88,11 +101,3 @@ def url_already_exists(db: Session, short_url):
     Bool
     """
     return get_url_by_shortened(db, short_url) is not None
-
-
-def hash_data():
-    pass
-
-
-def unhash_data():
-    pass
